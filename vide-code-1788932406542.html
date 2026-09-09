@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OECD AI Framework: Fuzzy-AHP & Risk Calculator</title>
+    <style>
+        :root {
+            --primary: #1e3a8a;
+            --secondary: #2563eb;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --text: #0f172a;
+            --border: #e2e8f0;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 20px;
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 1000px;
+            margin: 0 auto;
+        }
+
+        h1, h2, h3 {
+            color: var(--primary);
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 20px;
+            margin-bottom: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            margin-bottom: 5px;
+            font-size: 0.9em;
+        }
+
+        select, input[type="range"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            margin-bottom: 15px;
+            box-sizing: border-box;
+        }
+
+        .pairwise-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 10px;
+            margin-bottom: 12px;
+            padding-bottom: 8px;
+            border-bottom: 1px solid #f1f5f9;
+        }
+
+        .pairwise-row span {
+            font-size: 0.85em;
+            flex: 1;
+        }
+
+        .pairwise-row select {
+            flex: 1.5;
+            margin-bottom: 0;
+        }
+
+        .weight-bar-container {
+            margin-bottom: 10px;
+        }
+
+        .weight-bar-label {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.85em;
+            margin-bottom: 3px;
+        }
+
+        .weight-bar-bg {
+            background: #e2e8f0;
+            height: 12px;
+            border-radius: 6px;
+            overflow: hidden;
+        }
+
+        .weight-bar-fill {
+            background: var(--secondary);
+            height: 100%;
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .result-box {
+            text-align: center;
+            padding: 20px;
+            background: #eff6ff;
+            border-radius: 8px;
+            border: 1px solid #bfdbfe;
+        }
+
+        .score-display {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: var(--primary);
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            color: white;
+            font-weight: bold;
+            font-size: 0.9em;
+        }
+
+        .risk-low { background-color: #10b981; }
+        .risk-med { background-color: #f59e0b; }
+        .risk-high { background-color: #ef4444; }
+
+        button {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            font-weight: 600;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        button:hover {
+            background: var(--secondary);
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>OECD AI System Risk & Fuzzy-AHP Calculator</h1>
+    <p>Quantify qualitative risk dimensions using Fuzzy Analytic Hierarchy Process (Fuzzy-AHP) and Triangular Fuzzy Numbers (TFN).</p>
+
+    <div class="grid">
+        <!-- Step 1: Pairwise Comparisons for Fuzzy Weights -->
+        <div class="card">
+            <h2>Step 1: Dimension Priority (Fuzzy-AHP)</h2>
+            <p style="font-size:0.85em; color: #64748b;">Compare relative importance between dimensions to dynamically derive Fuzzy Weights $w_i$.</p>
+            <div id="pairwise-container"></div>
+            <button onclick="calculateWeights()">Recalculate Fuzzy Weights</button>
+        </div>
+
+        <!-- Step 2: System Evaluation across 5 Dimensions -->
+        <div class="card">
+            <h2>Step 2: Assess Target System Inputs</h2>
+            <p style="font-size:0.85em; color: #64748b;">Assign qualitative risk levels for the specific AI system under evaluation.</p>
+            
+            <label>1. People & Planet ($D_1$)</label>
+            <select id="d1_score" onchange="calculateOverallRisk()">
+                <option value="0.2">Low: Minimal human impact / eco-friendly</option>
+                <option value="0.5" selected>Medium: Limited group impact / moderate compute</option>
+                <option value="0.9">High: High risk to safety, human rights, or environment</option>
+            </select>
+
+            <label>2. Economic Sector & Domain ($D_2$)</label>
+            <select id="d2_score" onchange="calculateOverallRisk()">
+                <option value="0.2">Low: General utility / low-criticality domain</option>
+                <option value="0.5" selected>Medium: Commercial / regulated services</option>
+                <option value="0.9">High: Critical infrastructure, health, finance, legal</option>
+            </select>
+
+            <label>3. Data & Input ($D_3$)</label>
+            <select id="d3_score" onchange="calculateOverallRisk()">
+                <option value="0.2">Low: Public, anonymized, validated data</option>
+                <option value="0.5" selected>Medium: Proprietary / proprietary metadata</option>
+                <option value="0.9">High: Sensitive PII, biometric, copyrighted without consent</option>
+            </select>
+
+            <label>4. AI Model ($D_4$)</label>
+            <select id="d4_score" onchange="calculateOverallRisk()">
+                <option value="0.2">Low: Fully interpretable, traditional ML / deterministic</option>
+                <option value="0.5" selected>Medium: Fine-tuned open weights / partial opacity</option>
+                <option value="0.9">High: Opaque foundation model / black-box LLM</option>
+            </select>
+
+            <label>5. Task & Action ($D_5$)</label>
+            <select id="d5_score" onchange="calculateOverallRisk()">
+                <option value="0.2">Low: Advisory / human-in-the-loop validation</option>
+                <option value="0.5" selected>Medium: Semi-autonomous execution with oversight</option>
+                <option value="0.9">High: Fully autonomous execution / physical actions</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Results Section -->
+    <div class="grid">
+        <div class="card">
+            <h2>Derived Dimension Weights ($w_i$)</h2>
+            <div id="weights-display"></div>
+        </div>
+
+        <div class="card">
+            <h2>Aggregated Risk Score</h2>
+            <div class="result-box">
+                <div class="score-display" id="final-score">0.00</div>
+                <div style="margin-top: 10px;">
+                    <span id="risk-badge" class="badge risk-med">Medium Risk</span>
+                </div>
+                <p style="font-size:0.8em; color: #64748b; margin-top: 15px;">
+                    Calculated using Fuzzy Synthetic Extent Analysis: $R(S) = \sum w_i \cdot D_i$
+                </p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+const dimensions = [
+    { id: 'D1', name: 'People & Planet' },
+    { id: 'D2', name: 'Economic Sector' },
+    { id: 'D3', name: 'Data & Input' },
+    { id: 'D4', name: 'AI Model' },
+    { id: 'D5', name: 'Task & Action' }
+];
+
+// Scale definition for Triangular Fuzzy Numbers (TFN): (l, m, u)
+const tfnScale = {
+    '1':  [1, 1, 1],       // Equal
+    '3':  [2, 3, 4],       // Moderate preference
+    '5':  [4, 5, 6],       // Strong preference
+    '1/3': [1/4, 1/3, 1/2],
+    '1/5': [1/6, 1/5, 1/4]
+};
+
+let weights = [0.2, 0.2, 0.2, 0.2, 0.2];
+
+function initPairwiseUI() {
+    const container = document.getElementById('pairwise-container');
+    container.innerHTML = '';
+
+    let pairIndex = 0;
+    for (let i = 0; i < dimensions.length; i++) {
+        for (let j = i + 1; j < dimensions.length; j++) {
+            const row = document.createElement('div');
+            row.className = 'pairwise-row';
+            row.innerHTML = `
+                <span>${dimensions[i].name}</span>
+                <select id="pair_${i}_${j}">
+                    <option value="1">Equal (1:1)</option>
+                    <option value="3">More Important (3:1)</option>
+                    <option value="5">Strongly More Important (5:1)</option>
+                    <option value="1/3">Less Important (1:3)</option>
+                    <option value="1/5">Strongly Less Important (1:5)</option>
+                </select>
+                <span>${dimensions[j].name}</span>
+            `;
+            container.appendChild(row);
+            pairIndex++;
+        }
+    }
+}
+
+function calculateWeights() {
+    const n = dimensions.length;
+    // Initialize fuzzy comparison matrix (n x n x 3)
+    let matrix = Array(n).fill(0).map(() => Array(n).fill(0).map(() => [1, 1, 1]));
+
+    for (let i = 0; i < n; i++) {
+        for (let j = i + 1; j < n; j++) {
+            const val = document.getElementById(`pair_${i}_${j}`).value;
+            const tfn = tfnScale[val];
+            matrix[i][j] = tfn;
+            // Reciprocal TFN: (1/u, 1/m, 1/l)
+            matrix[j][i] = [1 / tfn[2], 1 / tfn[1], 1 / tfn[0]];
+        }
+    }
+
+    // Fuzzy Synthetic Extent Method (Chang's Extent Analysis)
+    let fuzzySums = [];
+    let totalL = 0, totalM = 0, totalU = 0;
+
+    for (let i = 0; i < n; i++) {
+        let sumL = 0, sumM = 0, sumU = 0;
+        for (let j = 0; j < n; j++) {
+            sumL += matrix[i][j][0];
+            sumM += matrix[i][j][1];
+            sumU += matrix[i][j][2];
+        }
+        fuzzySums.push([sumL, sumM, sumU]);
+        totalL += sumL;
+        totalM += sumM;
+        totalU += sumU;
+    }
+
+    // Defuzzification via Center of Gravity (CoG) and Normalization
+    let crispWeights = [];
+    let weightSum = 0;
+
+    for (let i = 0; i < n; i++) {
+        // Normalized fuzzy extent calculation: (Sum_i) (X) (Total_Sum)^-1
+        let defuzzified = (fuzzySums[i][0] + fuzzySums[i][1] + fuzzySums[i][2]) / (totalL + totalM + totalU);
+        crispWeights.push(defuzzified);
+        weightSum += defuzzified;
+    }
+
+    // Normalize so sum(w_i) = 1.0
+    weights = crispWeights.map(w => w / weightSum);
+
+    renderWeights();
+    calculateOverallRisk();
+}
+
+function renderWeights() {
+    const container = document.getElementById('weights-display');
+    container.innerHTML = '';
+
+    dimensions.forEach((dim, idx) => {
+        const pct = (weights[idx] * 100).toFixed(1);
+        const div = document.createElement('div');
+        div.className = 'weight-bar-container';
+        div.innerHTML = `
+            <div class="weight-bar-label">
+                <span>${dim.name} (${dim.id})</span>
+                <span><strong>${pct}%</strong></span>
+            </div>
+            <div class="weight-bar-bg">
+                <div class="weight-bar-fill" style="width: ${pct}%;"></div>
+            </div>
+        `;
+        container.appendChild(div);
+    });
+}
+
+function calculateOverallRisk() {
+    const d1 = parseFloat(document.getElementById('d1_score').value);
+    const d2 = parseFloat(document.getElementById('d2_score').value);
+    const d3 = parseFloat(document.getElementById('d3_score').value);
+    const d4 = parseFloat(document.getElementById('d4_score').value);
+    const d5 = parseFloat(document.getElementById('d5_score').value);
+
+    const scores = [d1, d2, d3, d4, d5];
+
+    // Aggregated Weighted Risk Score R(S)
+    let aggregatedRisk = 0;
+    for (let i = 0; i < 5; i++) {
+        aggregatedRisk += weights[i] * scores[i];
+    }
+
+    const finalScoreElem = document.getElementById('final-score');
+    const badgeElem = document.getElementById('risk-badge');
+
+    finalScoreElem.innerText = aggregatedRisk.toFixed(2);
+
+    if (aggregatedRisk < 0.35) {
+        badgeElem.innerText = "Low Risk Tier";
+        badgeElem.className = "badge risk-low";
+    } else if (aggregatedRisk < 0.65) {
+        badgeElem.innerText = "Medium Risk Tier";
+        badgeElem.className = "badge risk-med";
+    } else {
+        badgeElem.innerText = "High Risk / Critical Tier";
+        badgeElem.className = "badge risk-high";
+    }
+}
+
+// Initialize on page load
+window.onload = () => {
+    initPairwiseUI();
+    calculateWeights();
+};
+</script>
+
+</body>
+</html>
