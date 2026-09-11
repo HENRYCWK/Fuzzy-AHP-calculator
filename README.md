@@ -1,4 +1,5 @@
-[beta] Quantitative AI Risk Function based on the OECD Five-Dimensional Classification Framework
+beta:  Quantitative AI Risk Function based on the OECD Five-Dimensional Classification Framework
+
 How to Save and Run.
 Copy the code block into a text file.
 
