@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>A Quantitative AI Risk Function (OECD Framework)</title>
+    <style>
+        :root {
+            --primary: #0f172a;
+            --secondary: #1e3a8a;
+            --accent: #2563eb;
+            --bg: #f8fafc;
+            --card-bg: #ffffff;
+            --border: #cbd5e1;
+            --text: #1e293b;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            background-color: var(--bg);
+            color: var(--text);
+            margin: 0;
+            padding: 24px;
+            line-height: 1.5;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            margin-bottom: 24px;
+            border-bottom: 2px solid var(--border);
+            padding-bottom: 12px;
+        }
+
+        h1 {
+            color: var(--primary);
+            font-size: 1.6rem;
+            margin: 0 0 6px 0;
+        }
+
+        .subtitle {
+            color: #64748b;
+            font-size: 0.95rem;
+        }
+
+        .grid-top {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .grid-bottom {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(360px, 1fr));
+            gap: 20px;
+        }
+
+        .card {
+            background: var(--card-bg);
+            border: 1px solid var(--border);
+            border-radius: 8px;
+            padding: 20px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+        }
+
+        h2 {
+            color: var(--secondary);
+            font-size: 1.1rem;
+            margin-top: 0;
+            border-bottom: 1px solid #f1f5f9;
+            padding-bottom: 8px;
+        }
+
+        label {
+            display: block;
+            font-weight: 600;
+            font-size: 0.85rem;
+            margin: 12px 0 4px 0;
+        }
+
+        select, input[type="range"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid var(--border);
+            border-radius: 4px;
+            box-sizing: border-box;
+            background: #fff;
+        }
+
+        .slider-val {
+            float: right;
+            color: var(--accent);
+            font-weight: bold;
+        }
+
+        .metric-box {
+            background: #f1f5f9;
+            border-radius: 6px;
+            padding: 12px;
+            margin-top: 10px;
+        }
+
+        .score-title {
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: #64748b;
+        }
+
+        .score-val {
+            font-size: 1.6rem;
+            font-weight: bold;
+            color: var(--primary);
+        }
+
+        .tier-badge {
+            display: inline-block;
+            padding: 4px 12px;
+            border-radius: 12px;
+            color: white;
+            font-weight: bold;
+            font-size: 0.85rem;
+            margin-top: 4px;
+        }
+
+        .tier-low { background: #10b981; }
+        .tier-med { background: #f59e0b; }
+        .tier-high { background: #ef4444; }
+
+        .fahp-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            margin-bottom: 8px;
+        }
+
+        .fahp-row select {
+            width: 130px;
+            padding: 4px;
+            font-size: 0.8rem;
+        }
+
+        .weight-pill-container {
+            display: flex;
+            gap: 6px;
+            flex-wrap: wrap;
+            margin-top: 8px;
+        }
+
+        .weight-pill {
+            background: #e2e8f0;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+        }
+
+        canvas {
+            width: 100% !important;
+            height: 200px !important;
+            margin-top: 10px;
+        }
+    </style>
+    <!-- Chart.js for rendering the Risk Probability Density Function (PDF) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+
+<div class="container">
+    <header>
+        <h1>A Quantitative AI Risk Function</h1>
+        <div class="subtitle">
+            OECD Five-Dimensional Framework Pipeline: FAHP Elicitation → Bayesian Network → 2-Additive Choquet → PDF & Epistemic Uncertainty
+        </div>
+    </header>
+
+    <!-- Top Row: FAHP Elicitation & Operational Inputs -->
+    <div class="grid-top">
+        
+        <!-- Module 1: FAHP Weight Derivation Engine -->
+        <div class="card">
+            <h2>1. FAHP Expert Elicitation Engine</h2>
+            <div style="font-size:0.75rem; color:#64748b; margin-bottom:10px;">
+                Elicits pairwise criteria weights via Triangular Fuzzy Numbers (TFNs) without using FAHP as the final risk aggregator.
+            </div>
+
+            <div class="fahp-row">
+                <span>$D_3$ (Data) vs $D_5$ (Task)</span>
+                <select id="fahp_3_5" onchange="runPipeline()">
+                    <option value="3">D3 Stronger (3:1)</option>
+                    <option value="1" selected>Equal (1:1)</option>
+                    <option value="0.33">D5 Stronger (1:3)</option>
+                </select>
+            </div>
+
+            <div class="fahp-row">
+                <span>$D_4$ (Model) vs $D_1$ (People)</span>
+                <select id="fahp_4_1" onchange="runPipeline()">
+                    <option value="3" selected>D4 Stronger (3:1)</option>
+                    <option value="1">Equal (1:1)</option>
+                    <option value="0.33">D1 Stronger (1:3)</option>
+                </select>
+            </div>
+
+            <div class="fahp-row">
+                <span>$D_2$ (Sector) vs $D_5$ (Task)</span>
+                <select id="fahp_2_5" onchange="runPipeline()">
+                    <option value="1">Equal (1:1)</option>
+                    <option value="0.33" selected>D5 Stronger (1:3)</option>
+                </select>
+            </div>
+
+            <div class="metric-box">
+                <div class="score-title">Derived FAHP Prior Weights ($v_i$)</div>
+                <div class="weight-pill-container" id="fahp_weights_display"></div>
+            </div>
+        </div>
+
+        <!-- Module 2: System Exposure Inputs -->
+        <div class="card">
+            <h2>2. OECD Operational Exposure ($x_i$)</h2>
+            
+            <label>D1: People & Planet Impact</label>
+            <select id="d1" onchange="runPipeline()">
+                <option value="0.1">Low (Minimal end-user/environmental impact)</option>
+                <option value="0.5" selected>Medium (Moderate group impact, localized)</option>
+                <option value="0.9">High (Critical rights, broad public safety)</option>
+            </select>
+
+            <label>D2: Economic Sector & Domain</label>
+            <select id="d2" onchange="runPipeline()">
+                <option value="0.1">Low (Unregulated / general administrative context)</option>
+                <option value="0.5" selected>Medium (Regulated commercial sector)</option>
+                <option value="0.9">High (Critical Infrastructure, Health, Legal)</option>
+            </select>
+
+            <label>D3: Data & Input Sensitivity</label>
+            <select id="d3" onchange="runPipeline()">
+                <option value="0.1">Low (Public, anonymized, validated data)</option>
+                <option value="0.5" selected>Medium (Proprietary / sensitive metadata)</option>
+                <option value="0.9">High (PII, Biometric, Untracked Web Scrapes)</option>
+            </select>
+
+            <label>D4: AI Model Architecture</label>
+            <select id="d4" onchange="runPipeline()">
+                <option value="0.1">Low (Deterministic / Fully interpretable model)</option>
+                <option value="0.5" selected>Medium (Fine-tuned open weights / partial opacity)</option>
+                <option value="0.9">High (Opaque Black-Box Foundation Model)</option>
+            </select>
+
+            <label>D5: Task & Autonomy Level</label>
+            <select id="d5" onchange="runPipeline()">
+                <option value="0.1">Low (Human-in-the-loop / pure recommendation)</option>
+                <option value="0.5" selected>Medium (Human-on-the-loop / conditional action)</option>
+                <option value="0.9">High (Fully autonomous execution / closed-loop API)</option>
+            </select>
+        </div>
+    </div>
+
+    <!-- Bottom Row: Causal/Choquet Parameters & Final Probabilistic Output -->
+    <div class="grid-bottom">
+        
+        <!-- Module 3: Uncertainty & Interaction Parameters -->
+        <div class="card">
+            <h2>3. Dependency & Interaction Controls</h2>
+            
+            <label>Explicit Epistemic Disagreement ($\sigma_{epistemic}^2$) 
+                <span class="slider-val" id="disp_var">0.05</span>
+            </label>
+            <input type="range" id="param_var" min="0.01" max="0.25" step="0.01" value="0.05" oninput="runPipeline()">
+            <div style="font-size:0.75rem; color:#64748b;">Quantifies expert variance during FAHP elicitation (Not averaged away).</div>
+
+            <label>Synergy: Data ($D_3$) $\times$ Autonomy ($D_5$) 
+                <span class="slider-val" id="disp_i35">+0.15</span>
+            </label>
+            <input type="range" id="param_i35" min="-0.20" max="0.30" step="0.05" value="0.15" oninput="runPipeline()">
+
+            <label>Synergy: Model ($D_4$) $\times$ Sector ($D_2$)
+                <span class="slider-val" id="disp_i24">+0.10</span>
+            </label>
+            <input type="range" id="param_i24" min="-0.20" max="0.30" step="0.05" value="0.10" oninput="runPipeline()">
+            
+            <div class="metric-box">
+                <div class="score-title">Bayesian Network Causal Factor ($P(H|E)$)</div>
+                <div class="score-val" id="bn_shift">x1.00</div>
+                <div style="font-size:0.75rem; color:#64748b;">Directed Path: $D_3 \rightarrow D_4 \rightarrow D_5$ Causal Multiplier</div>
+            </div>
+        </div>
+
+        <!-- Module 4: Output Metrics & Probability Density Graph -->
+        <div class="card">
+            <h2>4. Risk Function Output & Uncertainty Distribution</h2>
+            
+            <div style="display:flex; gap:12px;">
+                <div class="metric-box" style="flex:1;">
+                    <div class="score-title">Choquet Mean Risk ($\mu_R$)</div>
+                    <div class="score-val" id="choquet_score">0.00</div>
+                    <div id="risk_tier" class="tier-badge tier-med">Medium Risk</div>
+                </div>
+
+                <div class="metric-box" style="flex:1;">
+                    <div class="score-title">Epistemic $95\%$ CI</div>
+                    <div class="score-val" style="font-size:1.1rem; margin-top:6px;" id="ci_bounds">[0.00, 0.00]</div>
+                    <div style="font-size:0.7rem; color:#64748b; margin-top:4px;">Uncertainty Range</div>
+                </div>
+            </div>
+
+            <canvas id="pdfChart"></canvas>
+        </div>
+    </div>
+</div>
+
+<script>
+let pdfChart = null;
+
+function calculateFAHPWeights() {
+    // Read user pairwise inputs
+    const p35 = parseFloat(document.getElementById('fahp_3_5').value);
+    const p41 = parseFloat(document.getElementById('fahp_4_1').value);
+    const p25 = parseFloat(document.getElementById('fahp_2_5').value);
+
+    // Initial base preference scores
+    let raw = [0.20, 0.20 * (1/p25), 0.25 * p35, 0.20 * p41, 0.20];
+    const sum = raw.reduce((a, b) => a + b, 0);
+    
+    // Derived weights v_i
+    const v = raw.map(w => w / sum);
+
+    // Render weight pills in UI
+    const display = document.getElementById('fahp_weights_display');
+    display.innerHTML = `
+        <span class="weight-pill">D1: ${(v[0]*100).toFixed(0)}%</span>
+        <span class="weight-pill">D2: ${(v[1]*100).toFixed(0)}%</span>
+        <span class="weight-pill">D3: ${(v[2]*100).toFixed(0)}%</span>
+        <span class="weight-pill">D4: ${(v[3]*100).toFixed(0)}%</span>
+        <span class="weight-pill">D5: ${(v[4]*100).toFixed(0)}%</span>
+    `;
+
+    return v;
+}
+
+function runPipeline() {
+    // 1. Derive Prior Weights via FAHP Elicitation
+    const v = calculateFAHPWeights();
+
+    // 2. Read System Operational Exposures x_i
+    const x = [
+        parseFloat(document.getElementById('d1').value),
+        parseFloat(document.getElementById('d2').value),
+        parseFloat(document.getElementById('d3').value),
+        parseFloat(document.getElementById('d4').value),
+        parseFloat(document.getElementById('d5').value)
+    ];
+
+    // 3. Read Expert Disagreement and 2-Additive Choquet Interaction Parameters
+    const epistemic_var = parseFloat(document.getElementById('param_var').value);
+    const I35 = parseFloat(document.getElementById('param_i35').value);
+    const I24 = parseFloat(document.getElementById('param_i24').value);
+
+    document.getElementById('disp_var').innerText = epistemic_var.toFixed(2);
+    document.getElementById('disp_i35').innerText = (I35 >= 0 ? "+" : "") + I35.toFixed(2);
+    document.getElementById('disp_i24').innerText = (I24 >= 0 ? "+" : "") + I24.toFixed(2);
+
+    // 4. Bayesian Network Causal Multiplier
+    // Directed Path: Data Risk (D3) + Model Opacity (D4) amplifies Autonomy Hazard (D5)
+    const bn_causal_factor = 1.0 + (x[2] * 0.25 + x[3] * 0.35) * x[4];
+    document.getElementById('bn_shift').innerText = "x" + bn_causal_factor.toFixed(2);
+
+    // 5. 2-Additive Choquet Integral Engine
+    // C(x) = Sum(v_i * x_i) + Sum(I_ij * Min(x_i, x_j))
+    let linear_sum = 0;
+    for(let i = 0; i < 5; i++) {
+        linear_sum += v[i] * x[i];
+    }
+
+    const interaction_term = (I35 * Math.min(x[2], x[4])) + (I24 * Math.min(x[1], x[3]));
+    
+    // Mean Risk Score \mu_R adjusted by Bayesian Causal Path
+    let mu_R = (linear_sum + interaction_term) * (bn_causal_factor / 1.25);
+    mu_R = Math.min(Math.max(mu_R, 0.01), 0.99); // Clamp to [0,1] range
+
+    document.getElementById('choquet_score').innerText = mu_R.toFixed(3);
+
+    // 6. Update Regulatory Risk Tier
+    const tierElem = document.getElementById('risk_tier');
+    if (mu_R < 0.35) {
+        tierElem.innerText = "Low Risk Tier";
+        tierElem.className = "tier-badge tier-low";
+    } else if (mu_R < 0.65) {
+        tierElem.innerText = "Medium Risk Tier";
+        tierElem.className = "tier-badge tier-med";
+    } else {
+        tierElem.innerText = "High / Critical Risk Tier";
+        tierElem.className = "tier-badge tier-high";
+    }
+
+    // 7. Compute Confidence Bounds using Epistemic Disagreement
+    const sigma = Math.sqrt(epistemic_var);
+    const lower_ci = Math.max(0, mu_R - 1.96 * sigma).toFixed(2);
+    const upper_ci = Math.min(1, mu_R + 1.96 * sigma).toFixed(2);
+    document.getElementById('ci_bounds').innerText = `[${lower_ci}, ${upper_ci}]`;
+
+    // 8. Render Probability Density Function (PDF Curve)
+    renderPDF(mu_R, sigma);
+}
+
+function renderPDF(mean, sd) {
+    const labels = [];
+    const data = [];
+    
+    // Generate Gaussian proxy PDF points across continuous risk spectrum [0, 1]
+    for (let x = 0; x <= 1.0; x += 0.02) {
+        labels.push(x.toFixed(2));
+        const pdf = (1 / (sd * Math.sqrt(2 * Math.PI))) * Math.exp(-0.5 * Math.pow((x - mean) / sd, 2));
+        data.push(pdf);
+    }
+
+    if (pdfChart) pdfChart.destroy();
+
+    const ctx = document.getElementById('pdfChart').getContext('2d');
+    pdfChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+            labels: labels,
+            datasets: [{
+                label: 'Risk Probability Density Function P(Risk)',
+                data: data,
+                borderColor: '#2563eb',
+                backgroundColor: 'rgba(37, 99, 235, 0.18)',
+                fill: true,
+                tension: 0.4,
+                pointRadius: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: { legend: { display: false } },
+            scales: {
+                x: { 
+                    title: { display: true, text: 'Continuous Risk Scale [0, 1]' },
+                    ticks: { maxTicksLimit: 10 }
+                },
+                y: { display: false }
+            }
+        }
+    });
+}
+
+// Execute initial calculation on page load
+window.onload = runPipeline;
+</script>
+</body>
+</html>
